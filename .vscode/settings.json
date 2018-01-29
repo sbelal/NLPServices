@@ -2,7 +2,7 @@
 {
     "python.pythonPath": "C:\\ProgramData\\Anaconda3\\envs\\tensorflow",
     "editor.detectIndentation": false,
-	"editor.insertSpaces": false,
+	"editor.insertSpaces": true,
 	"editor.tabSize": 4,
 	"python.linting.pylintArgs": [
 		"--disable=W0312,C0103"
