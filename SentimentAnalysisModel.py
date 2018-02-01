@@ -16,11 +16,16 @@ class SentimentAnalysisModel:
         self.split_frac = 0.8
 
         self.lstm_size = 256   #Number of units in the hidden layers in the LSTM cells. Usually larger is better performance wise. Common values are 128, 256, 512, etc.
-        self.lstm_layers = 1  #Number of LSTM layers in the network. I'd start with 1, then add more if I'm underfitting.
+        self.lstm_layers = 2  #Number of LSTM layers in the network. I'd start with 1, then add more if I'm underfitting.
         self.batch_size = 500 #The number of reviews to feed the network in one training pass. Typically this should be set as high as you can go without running out of memory.
         self.learning_rate = 0.001  #Learning rate
         self.embed_size = 300
         self.__tfGraph = 1
+
+
+    def lstm_cell(self):
+        cell = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
+        return cell
 
     def Build_Graph(self):
         '''
@@ -38,13 +43,14 @@ class SentimentAnalysisModel:
         embed = tf.nn.embedding_lookup(embedding, inputs_)
 
         # Your basic LSTM cell
-        lstm = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
+        #cell = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
+        # Stack up multiple LSTM layers, for deep learning
+        #cell = tf.contrib.rnn.MultiRNNCell([cell] * self.lstm_layers)        
+        cell = tf.contrib.rnn.MultiRNNCell([self.lstm_cell() for _ in range(self.lstm_layers)])
 
         # Add dropout to the cell
-        drop = tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
 
-        # Stack up multiple LSTM layers, for deep learning
-        cell = tf.contrib.rnn.MultiRNNCell([drop] * self.lstm_layers)
 
         # Getting an initial state of all zeros
         initial_state = cell.zero_state(self.batch_size, tf.float32)
@@ -86,6 +92,7 @@ class SentimentAnalysisModel:
         '''
         Train our model
         '''
+        
         self.FeatureExtractor.ExtractFeatures()
         features = self.FeatureExtractor.Features
         labels =  self.FeatureExtractor.ExpectedOutputs
@@ -110,24 +117,24 @@ class SentimentAnalysisModel:
 
         inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy = self.Build_Graph()
 
-        epochs = 10
+        epochs = 20
 
         saver = tf.train.Saver()
 
 
-        test_acc = []
+        #test_acc = []
 
-        with tf.Session() as sess:
-            saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
-            test_state = sess.run(cell.zero_state(self.batch_size, tf.float32))
-            for ii, (x, y) in enumerate(self.get_batches(test_x, test_y, self.batch_size), 1):
-                feed = {inputs_: x,
-                        labels_: y[:, None],
-                        keep_prob: 1,
-                        initial_state: test_state}
-                batch_acc, test_state = sess.run([accuracy, final_state], feed_dict=feed)
-                test_acc.append(batch_acc)
-            print("Test accuracy: {:.3f}".format(np.mean(test_acc)))
+        #with tf.Session() as sess:
+        #    saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
+        #    test_state = sess.run(cell.zero_state(self.batch_size, tf.float32))
+        #    for ii, (x, y) in enumerate(self.get_batches(test_x, test_y, self.batch_size), 1):
+        #        feed = {inputs_: x,
+        #                labels_: y[:, None],
+        #                keep_prob: 1,
+        #                initial_state: test_state}
+        #        batch_acc, test_state = sess.run([accuracy, final_state], feed_dict=feed)
+        #        test_acc.append(batch_acc)
+        #    print("Test accuracy: {:.3f}".format(np.mean(test_acc)))
 
 
 
@@ -136,18 +143,17 @@ class SentimentAnalysisModel:
             iteration = 1
             for e in range(epochs):
                 state = sess.run(initial_state)
-                
+
                 for ii, (x, y) in enumerate(self.get_batches(train_x, train_y, self.batch_size), 1):
                     feed = {inputs_: x,
                             labels_: y[:, None],
                             keep_prob: 0.5,
                             initial_state: state}
                     loss, state, _ = sess.run([cost, final_state, optimizer], feed_dict=feed)
-                    
-                    if iteration%5==0:
-                        print("Epoch: {}/{}".format(e, epochs),
-                            "Iteration: {}".format(iteration),
-                            "Train loss: {:.3f}".format(loss))
+
+                    if iteration%5 == 0:
+                        print("Epoch: {}/{}".format(e, epochs), "Iteration: {}".format(iteration), 
+                              "Train loss: {:.3f}".format(loss))
 
                     if iteration%25==0:
                         val_acc = []
@@ -160,8 +166,6 @@ class SentimentAnalysisModel:
                             batch_acc, val_state = sess.run([accuracy, final_state], feed_dict=feed)
                             val_acc.append(batch_acc)
                         print("Val acc: {:.3f}".format(np.mean(val_acc)))
-                    iteration +=1
+                    iteration += 1
             saver.save(sess, "checkpoints/sentiment.ckpt")
 
-
-   
