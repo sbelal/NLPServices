@@ -1,5 +1,6 @@
 FROM tensorflow/tensorflow:latest-py3
-MAINTAINER Sal Belal "sbelal@gmail.com"
+LABEL author="Sal Belal"
+LABEL authorEmail="Sal.Belal@visioncritical.com"
 
 COPY . /app
 WORKDIR /app
