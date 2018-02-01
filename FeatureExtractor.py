@@ -22,6 +22,8 @@ class FeatureExtractor:
         self.Label_Vocab_To_Int = []
         self.TrainingData_Vocab_To_Int = []
 
+
+
     def __remove_punctuation(self, text):
         '''
         Removes all punctuations from text
@@ -40,6 +42,8 @@ class FeatureExtractor:
         vocab = sorted(counts, key=counts.get, reverse=True)
 
         return vocab
+
+
 
     def __encode_words(self, text_array, word_to_int, all_text_has_one_word):
         '''
@@ -68,6 +72,11 @@ class FeatureExtractor:
 
         return result
 
+    def encode_text(self, text):
+        result = self.__encode_words([text], self.TrainingData_Vocab_To_Int, False)
+        result = self.__add_left_zero_padding(result)
+
+        return result
 
     def __load_files(self, trainingDataPath, labelDataPath):
         '''
@@ -105,7 +114,7 @@ class FeatureExtractor:
         self.Features = encodedTrainingData
         self.TrainingData_Vocab_To_Int = vocab_to_int
 
-        vocab_to_int = {"positive":1, "negative":0}
-        encodedLabels = self.__encode_words(self.RawLabels, vocab_to_int, True)
+        vocab_to_int2 = {"positive":1, "negative":0}
+        encodedLabels = self.__encode_words(self.RawLabels, vocab_to_int2, True)
         self.ExpectedOutputs = encodedLabels
-        self.Label_Vocab_To_Int = vocab_to_int
+        self.Label_Vocab_To_Int = vocab_to_int2
