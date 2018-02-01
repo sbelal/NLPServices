@@ -5,7 +5,7 @@
 	"editor.insertSpaces": true,
 	"editor.tabSize": 4,
 	"python.linting.pylintArgs": [
-		"--disable=W0312,C0103"
+		"--disable=W0312,C0103,E1129"
 	]
 
 }

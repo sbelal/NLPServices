@@ -1,3 +1,5 @@
 .vscode/launch.json
 .vs/
 __pycache__/
+.ipynb_checkpoints/
+checkpoints/
