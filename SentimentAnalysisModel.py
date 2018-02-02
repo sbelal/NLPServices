@@ -15,14 +15,18 @@ class SentimentAnalysisModel:
         self.FeatureExtractor = featureExtractor
         self.split_frac = 0.8
 
-        self.lstm_size = 256   #Number of units in the hidden layers in the LSTM cells. Usually larger is better performance wise. Common values are 128, 256, 512, etc.
+        self.lstm_size = 128   #Number of units in the hidden layers in the LSTM cells. Usually larger is better performance wise. Common values are 128, 256, 512, etc.
         self.lstm_layers = 2  #Number of LSTM layers in the network. I'd start with 1, then add more if I'm underfitting.
         self.batch_size = 500 #The number of reviews to feed the network in one training pass. Typically this should be set as high as you can go without running out of memory.
-        self.learning_rate = 0.001  #Learning rate
+        self.learning_rate = 0.0005  #Learning rate
         self.embed_size = 300
 
         self.FeatureExtractor.ExtractFeatures()
 
+
+    def load_model(self):
+
+        print("Loading model....")
         tf.reset_default_graph()
         graph = tf.Graph()
 
@@ -36,8 +40,9 @@ class SentimentAnalysisModel:
 
         self.sess = tf.Session(graph=self.graph)
         saver.restore(self.sess, tf.train.latest_checkpoint('checkpoints'))
+        print("Done loading model")
 
-    def close():
+    def close(self):
         self.sess.close()
 
     def lstm_cell(self):
@@ -93,25 +98,16 @@ class SentimentAnalysisModel:
         for ii in range(0, len(x), batch_size):
             yield x[ii:ii+batch_size], y[ii:ii+batch_size]
 
-    def Load_Model(self,sess):
-        inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph()
-
-        saver = tf.train.Saver()
-        saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
-    
-        return inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions
-
- 
 
     def Evaluate(self, text):
-       
+
         x = self.FeatureExtractor.encode_text(text)
         y = np.array([[0]])
-        
-    
+
+
         sess = self.sess
 
-        inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.ModelVars 
+        inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.ModelVars
         test_state = sess.run(cell.zero_state(1, tf.float32))
 
         feed = {inputs_: x,
@@ -119,8 +115,9 @@ class SentimentAnalysisModel:
                 keep_prob: 1,
                 initial_state: test_state}
         scores = sess.run(predictions, feed_dict=feed)
-                
-        print("Prediction: {:.3f}".format(np.mean(scores)))
+
+        return scores[0][0]
+
 
 
 
@@ -128,14 +125,15 @@ class SentimentAnalysisModel:
         test_acc = []
 
         features = self.FeatureExtractor.Features
-        labels =  self.FeatureExtractor.ExpectedOutputs
+        labels = self.FeatureExtractor.ExpectedOutputs
 
         split_idx = int(len(features) * self.split_frac)
+        train_x, val_x = features[:split_idx], features[split_idx:]
+        train_y, val_y = labels[:split_idx], labels[split_idx:]
 
         test_idx = int(len(val_x)*0.5)
         val_x, test_x = val_x[:test_idx], val_x[test_idx:]
         val_y, test_y = val_y[:test_idx], val_y[test_idx:]
-
 
 
         tf.reset_default_graph()
@@ -184,7 +182,7 @@ class SentimentAnalysisModel:
             inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(self.batch_size)
             saver = tf.train.Saver()
         
-        epochs = 20
+        epochs = 10
         with tf.Session(graph=graph) as sess:
             sess.run(tf.global_variables_initializer())
             iteration = 1
@@ -216,4 +214,4 @@ class SentimentAnalysisModel:
                         print("Val acc: {:.3f}".format(np.mean(val_acc)))
                     iteration += 1
 
-            #saver.save(sess, "checkpoints/sentiment.ckpt")
+            saver.save(sess, "checkpoints/sentiment.ckpt")

@@ -81,7 +81,7 @@ def get_sentiment_score():
     text = request.json['text']
     score = sentimentModel.Evaluate(text)
    
-    return jsonify({'score': score}), 200
+    return jsonify({'score': str(score)}), 200
 
 
 
@@ -155,10 +155,10 @@ tasks = [
 
 seq_length = 200
 
-print("Loading model....")
+
 featureExtractor = fe.FeatureExtractor(seq_length, "./Dataset/reviews.txt", "./Dataset/labels.txt")
 sentimentModel = model.SentimentAnalysisModel(featureExtractor, seq_length)
-print("READY!")
+sentimentModel.load_model()
 
 
 if __name__ == '__main__':

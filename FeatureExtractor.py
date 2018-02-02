@@ -43,15 +43,13 @@ class FeatureExtractor:
 
         return vocab
 
-
-
     def __encode_words(self, text_array, word_to_int, all_text_has_one_word):
         '''
         Takes a list of text and converts all words to integers
         '''
         result = []
         for text in text_array:
-            encoded_text = [word_to_int[word] for word in text.split()]
+            encoded_text = [word_to_int[word] for word in text.split() if word in word_to_int]
             if all_text_has_one_word:
                 encoded_text = encoded_text[0]
 
@@ -73,7 +71,9 @@ class FeatureExtractor:
         return result
 
     def encode_text(self, text):
-        result = self.__encode_words([text], self.TrainingData_Vocab_To_Int, False)
+        result = text.lower()
+        result = self.__remove_punctuation(result)
+        result = self.__encode_words([result], self.TrainingData_Vocab_To_Int, False)
         result = self.__add_left_zero_padding(result)
 
         return result
@@ -104,6 +104,7 @@ class FeatureExtractor:
         '''
         stuff
         '''
+        print ("Extracting features...")
         self.__load_files(self.TrainingDataPath, self.LabelDataPath)
 
         all_text = " ".join(self.RawTrainingData)
@@ -118,3 +119,4 @@ class FeatureExtractor:
         encodedLabels = self.__encode_words(self.RawLabels, vocab_to_int2, True)
         self.ExpectedOutputs = encodedLabels
         self.Label_Vocab_To_Int = vocab_to_int2
+        print ("Done extracting features")
