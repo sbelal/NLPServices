@@ -28,7 +28,7 @@ class SentimentAnalysisModel:
         cell = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
         return cell
 
-    def Build_Graph(self):
+    def Build_Graph(self, batchSize):
         '''
         Build the magic here
         '''
@@ -52,9 +52,8 @@ class SentimentAnalysisModel:
         # Add dropout to the cell
         cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
 
-
         # Getting an initial state of all zeros
-        initial_state = cell.zero_state(self.batch_size, tf.float32)
+        initial_state = cell.zero_state(batchSize, tf.float32)
 
         #Output layer
         outputs, final_state = tf.nn.dynamic_rnn(cell, embed, initial_state=initial_state)
@@ -97,9 +96,70 @@ class SentimentAnalysisModel:
                 test_state = sess.run(cell.zero_state(self.batch_size, tf.float32))
                 predictedSentiment = sess.run(predictions, {inputs_: x, keep_prob: 0.5, initial_state: test_state})[0]
 
-                return predictedSentiment
+                return predictedSentiment[0]
 
 
+
+    def Evaluate(self, text):
+       
+        x = self.FeatureExtractor.encode_text(text)
+        y = np.array([[0]])
+        
+        tf.reset_default_graph()
+        graph = tf.Graph()
+
+        with graph.as_default():
+            inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(1)
+            saver = tf.train.Saver()
+
+        with tf.Session(graph=graph) as sess:
+            saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
+            test_state = sess.run(cell.zero_state(1, tf.float32))
+    
+            feed = {inputs_: x,
+                    labels_: y,
+                    keep_prob: 1,
+                    initial_state: test_state}
+            scores = sess.run(predictions, feed_dict=feed)
+                    
+            print("Prediction: {:.3f}".format(np.mean(scores)))
+
+
+
+    def Test(self):
+        test_acc = []
+
+        features = self.FeatureExtractor.Features
+        labels =  self.FeatureExtractor.ExpectedOutputs
+
+        split_idx = int(len(features) * self.split_frac)
+        train_x, val_x = features[:split_idx], features[split_idx:]
+        train_y, val_y = labels[:split_idx], labels[split_idx:]
+
+        test_idx = int(len(val_x)*0.5)
+        val_x, test_x = val_x[:test_idx], val_x[test_idx:]
+        val_y, test_y = val_y[:test_idx], val_y[test_idx:]
+
+
+
+        tf.reset_default_graph()
+        graph = tf.Graph()
+
+        with graph.as_default():
+            inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(self.batch_size)
+            saver = tf.train.Saver()
+
+        with tf.Session(graph=graph) as sess:
+            saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
+            test_state = sess.run(cell.zero_state(self.batch_size, tf.float32))
+            for ii, (x, y) in enumerate(self.get_batches(test_x, test_y, self.batch_size), 1):
+                feed = {inputs_: x,
+                        labels_: y[:, None],
+                        keep_prob: 1,
+                        initial_state: test_state}
+                batch_acc, test_state = sess.run([accuracy, final_state], feed_dict=feed)
+                test_acc.append(batch_acc)
+            print("Test accuracy: {:.3f}".format(np.mean(test_acc)))
 
     def Train(self):
 
@@ -125,7 +185,7 @@ class SentimentAnalysisModel:
         tf.reset_default_graph()
         graph = tf.Graph()
         with graph.as_default():
-            inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph()
+            inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(self.batch_size)
             saver = tf.train.Saver()
         
         epochs = 20
