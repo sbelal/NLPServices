@@ -23,6 +23,22 @@ class SentimentAnalysisModel:
 
         self.FeatureExtractor.ExtractFeatures()
 
+        tf.reset_default_graph()
+        graph = tf.Graph()
+
+        with graph.as_default():
+            inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(1)
+            saver = tf.train.Saver()
+
+        self.saver = saver
+        self.graph = graph
+        self.ModelVars = (inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions)
+
+        self.sess = tf.Session(graph=self.graph)
+        saver.restore(self.sess, tf.train.latest_checkpoint('checkpoints'))
+
+    def close():
+        self.sess.close()
 
     def lstm_cell(self):
         cell = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
@@ -85,44 +101,26 @@ class SentimentAnalysisModel:
     
         return inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions
 
-    def run_model(self, text):
-
-        x = self.FeatureExtractor.encode_text(text)
-        self.graph = tf.Graph().as_default()
-        
-        with self.graph:
-            with tf.Session() as sess:
-                inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Load_Model(sess)
-                test_state = sess.run(cell.zero_state(self.batch_size, tf.float32))
-                predictedSentiment = sess.run(predictions, {inputs_: x, keep_prob: 0.5, initial_state: test_state})[0]
-
-                return predictedSentiment[0]
-
-
+ 
 
     def Evaluate(self, text):
        
         x = self.FeatureExtractor.encode_text(text)
         y = np.array([[0]])
         
-        tf.reset_default_graph()
-        graph = tf.Graph()
-
-        with graph.as_default():
-            inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(1)
-            saver = tf.train.Saver()
-
-        with tf.Session(graph=graph) as sess:
-            saver.restore(sess, tf.train.latest_checkpoint('checkpoints'))
-            test_state = sess.run(cell.zero_state(1, tf.float32))
     
-            feed = {inputs_: x,
-                    labels_: y,
-                    keep_prob: 1,
-                    initial_state: test_state}
-            scores = sess.run(predictions, feed_dict=feed)
-                    
-            print("Prediction: {:.3f}".format(np.mean(scores)))
+        sess = self.sess
+
+        inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.ModelVars 
+        test_state = sess.run(cell.zero_state(1, tf.float32))
+
+        feed = {inputs_: x,
+                labels_: y,
+                keep_prob: 1,
+                initial_state: test_state}
+        scores = sess.run(predictions, feed_dict=feed)
+                
+        print("Prediction: {:.3f}".format(np.mean(scores)))
 
 
 
@@ -133,8 +131,6 @@ class SentimentAnalysisModel:
         labels =  self.FeatureExtractor.ExpectedOutputs
 
         split_idx = int(len(features) * self.split_frac)
-        train_x, val_x = features[:split_idx], features[split_idx:]
-        train_y, val_y = labels[:split_idx], labels[split_idx:]
 
         test_idx = int(len(val_x)*0.5)
         val_x, test_x = val_x[:test_idx], val_x[test_idx:]

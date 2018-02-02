@@ -4,6 +4,9 @@ Flask service test
 
 import tensorflow as tf
 from flask import Flask, jsonify, abort, request, make_response, url_for
+import FeatureExtractor as fe
+import SentimentAnalysisModel as model
+
 
 app = Flask(__name__)
 
@@ -45,25 +48,6 @@ def get_single_task(task_id):
         abort(404)
     return jsonify({'task': make_public_task(task[0])})
 
-@app.route('/api/v1.0/tensortest/<text>', methods=['GET'])
-def home1(text):
-    """
-    qwqeqw eqweq we qwe qwe
-    """
-    tensorOutput = str(sess.run(hello))
-    finalOutput = tensorOutput + text
-    return finalOutput
-
-
-@app.route('/api/v1.0/myerror', methods=['GET'])
-def myerror():
-    """
-    qwqeqw eqweq we qwe qwe
-    """
-
-    tensorOutput = sess.run(hello)
-    finalOutput = tensorOutput + "a"
-    return finalOutput
 
 
 @app.route('/api/v1.0/tasks', methods=['POST'])
@@ -83,8 +67,27 @@ def create_task():
     return jsonify({'task': task}), 201
 
 
-@app.route('/api/v1.0/tasks/<int:task_id>', methods=['PUT'])
 
+
+@app.route('/api/v1.0/sentimentscore', methods=['POST'])
+def get_sentiment_score():
+    '''
+    Some text
+    '''
+    if not request.json or not 'text' in request.json:
+        abort(400)
+   
+   
+    text = request.json['text']
+    score = sentimentModel.Evaluate(text)
+   
+    return jsonify({'score': score}), 200
+
+
+
+
+
+@app.route('/api/v1.0/tasks/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
     '''
     blah blah
@@ -150,9 +153,12 @@ tasks = [
 #endregion
 
 
-hello = tf.constant('Hello, TensorFlow!')
-sess = tf.Session()
+seq_length = 200
 
+print("Loading model....")
+featureExtractor = fe.FeatureExtractor(seq_length, "./Dataset/reviews.txt", "./Dataset/labels.txt")
+sentimentModel = model.SentimentAnalysisModel(featureExtractor, seq_length)
+print("READY!")
 
 
 if __name__ == '__main__':
