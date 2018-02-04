@@ -4,7 +4,7 @@ Extract files and convert them to features.
 import numpy as np
 import tensorflow as tf
 import FeatureExtractor as fe
-
+import pickle
 
 class SentimentAnalysisModel:
     '''
@@ -15,25 +15,24 @@ class SentimentAnalysisModel:
         self.FeatureExtractor = featureExtractor
         self.split_frac = 0.8
 
-        self.lstm_size = 128   #Number of units in the hidden layers in the LSTM cells. Usually larger is better performance wise. Common values are 128, 256, 512, etc.
+        self.lstm_size = 256   #Number of units in the hidden layers in the LSTM cells. Usually larger is better performance wise. Common values are 128, 256, 512, etc.
         self.lstm_layers = 2  #Number of LSTM layers in the network. I'd start with 1, then add more if I'm underfitting.
         self.batch_size = 500 #The number of reviews to feed the network in one training pass. Typically this should be set as high as you can go without running out of memory.
-        self.learning_rate = 0.0005  #Learning rate
+        self.learning_rate = 0.001  #Learning rate
         self.embed_size = 300
-
-        self.FeatureExtractor.ExtractFeatures()
 
 
     def load_model(self):
 
         print("Loading model....")
+        self.load_features()
         tf.reset_default_graph()
         graph = tf.Graph()
-
+        
         with graph.as_default():
             inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(1)
             saver = tf.train.Saver()
-
+            
         self.saver = saver
         self.graph = graph
         self.ModelVars = (inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions)
@@ -75,7 +74,7 @@ class SentimentAnalysisModel:
 
         # Getting an initial state of all zeros
         initial_state = cell.zero_state(batchSize, tf.float32)
-
+       
         #Output layer
         outputs, final_state = tf.nn.dynamic_rnn(cell, embed, initial_state=initial_state)
 
@@ -155,11 +154,18 @@ class SentimentAnalysisModel:
                 test_acc.append(batch_acc)
             print("Test accuracy: {:.3f}".format(np.mean(test_acc)))
 
+
+    def load_features(self):
+        self.FeatureExtractor.TrainingData_Vocab_To_Int, self.FeatureExtractor.RawTrainingData = pickle.load(open('preprocess.p', mode='rb'))
+
+
     def Train(self):
 
         '''
         Train our model
         '''
+
+        self.FeatureExtractor.ExtractFeatures()
         features = self.FeatureExtractor.Features
         labels =  self.FeatureExtractor.ExpectedOutputs
 
@@ -182,7 +188,7 @@ class SentimentAnalysisModel:
             inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(self.batch_size)
             saver = tf.train.Saver()
         
-        epochs = 10
+        epochs = 20
         with tf.Session(graph=graph) as sess:
             sess.run(tf.global_variables_initializer())
             iteration = 1

@@ -4,7 +4,7 @@ Extract files and convert them to features.
 from string import punctuation
 from collections import Counter
 import numpy as np
-
+import pickle
 
 
 class FeatureExtractor:
@@ -100,6 +100,10 @@ class FeatureExtractor:
         self.RawLabels = labels
         self.RawTrainingData = trainingData
 
+
+    def __save_features(self):
+        pickle.dump((self.TrainingData_Vocab_To_Int, self.RawTrainingData), open('preprocess.p', 'wb'))
+
     def ExtractFeatures(self):
         '''
         stuff
@@ -119,4 +123,6 @@ class FeatureExtractor:
         encodedLabels = self.__encode_words(self.RawLabels, vocab_to_int2, True)
         self.ExpectedOutputs = encodedLabels
         self.Label_Vocab_To_Int = vocab_to_int2
-        print ("Done extracting features")
+        print("Done extracting features")
+        self.__save_features()
+        print("Saved features")
