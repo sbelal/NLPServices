@@ -20,9 +20,10 @@ class SentimentAnalysisModel:
         self.batch_size = 500 #The number of reviews to feed the network in one training pass. Typically this should be set as high as you can go without running out of memory.
         self.learning_rate = 0.001  #Learning rate
         self.embed_size = 300
+        self.training_epochs = 30
 
 
-    def load_model(self):
+    def load_model(self, epoch):
 
         print("Loading model....")
         self.load_features()
@@ -38,7 +39,11 @@ class SentimentAnalysisModel:
         self.ModelVars = (inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions)
 
         self.sess = tf.Session(graph=self.graph)
-        saver.restore(self.sess, tf.train.latest_checkpoint('checkpoints'))
+        if not epoch:
+            saver.restore(self.sess, tf.train.latest_checkpoint('checkpoints'))
+        else:
+            print("Loading epock {}".format(epoch))
+            saver.restore(self.sess, "checkpoints/sentiment.ckpt-" + str(epoch))
         print("Done loading model")
 
     def close(self):
@@ -182,13 +187,15 @@ class SentimentAnalysisModel:
             "\nValidation set: \t{}".format(val_x.shape),
             "\nTest set: \t\t{}".format(test_x.shape))
 
+        epochs = self.training_epochs
+
         tf.reset_default_graph()
         graph = tf.Graph()
         with graph.as_default():
             inputs_, labels_, keep_prob, cell, initial_state, final_state, cost, optimizer, accuracy, predictions = self.Build_Graph(self.batch_size)
-            saver = tf.train.Saver()
+            saver = tf.train.Saver(max_to_keep=0)
         
-        epochs = 20
+        
         with tf.Session(graph=graph) as sess:
             sess.run(tf.global_variables_initializer())
             iteration = 1
@@ -203,11 +210,11 @@ class SentimentAnalysisModel:
                             initial_state: state}
                     loss, state, _ = sess.run([cost, final_state, optimizer], feed_dict=feed)
 
-                    if iteration%5 == 0:
-                        print("Epoch: {}/{}".format(e, epochs), "Iteration: {}".format(iteration), 
-                            "Train loss: {:.3f}".format(loss))
+                    if iteration % 5 == 0:
+                        print("Epoch: {}/{}".format(e, epochs), "Iteration: {}".format(iteration),
+                              "Train loss: {:.3f}".format(loss))
 
-                    if iteration%25==0:
+                    if iteration % 25 == 0:
                         val_acc = []
                         val_state = sess.run(cell.zero_state(self.batch_size, tf.float32))
                         for x, y in self.get_batches(val_x, val_y, self.batch_size):
@@ -218,6 +225,7 @@ class SentimentAnalysisModel:
                             batch_acc, val_state = sess.run([accuracy, final_state], feed_dict=feed)
                             val_acc.append(batch_acc)
                         print("Val acc: {:.3f}".format(np.mean(val_acc)))
+                        saver.save(sess, "checkpoints/sentiment.ckpt", global_step=iteration)
                     iteration += 1
 
             saver.save(sess, "checkpoints/sentiment.ckpt")

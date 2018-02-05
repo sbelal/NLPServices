@@ -50,6 +50,11 @@ class FeatureExtractor:
         result = []
         for text in text_array:
             encoded_text = [word_to_int[word] for word in text.split() if word in word_to_int]
+            
+            for word in text.split():
+                if  word not in word_to_int:
+                    print("----missing: {}".format(word))                    
+
             if all_text_has_one_word:
                 encoded_text = encoded_text[0]
 
