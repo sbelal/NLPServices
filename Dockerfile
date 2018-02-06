@@ -2,13 +2,12 @@ FROM tensorflow/tensorflow:latest-py3
 LABEL author="Sal Belal"
 LABEL authorEmail="Sal.Belal@visioncritical.com"
 
-COPY ./templates /app/checkpoints
+COPY ./templates /app/templates
 COPY ./checkpoints /app/checkpoints
 COPY ./Dataset /app/Dataset
 COPY ./static /app/static
 COPY ./app.py /app
 COPY ./FeatureExtractor.py /app
-COPY ./index.html /app
 COPY ./preprocess.p /app
 COPY ./README.md /app
 COPY ./requirements.txt /app
