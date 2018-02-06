@@ -20,7 +20,7 @@ class SentimentAnalysisModel:
         self.batch_size = 500 #The number of reviews to feed the network in one training pass. Typically this should be set as high as you can go without running out of memory.
         self.learning_rate = 0.001  #Learning rate
         self.embed_size = 300
-        self.training_epochs = 30
+        self.training_epochs = 20
 
 
     def load_model(self, epoch):

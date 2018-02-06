@@ -13,11 +13,11 @@ seq_length = 200
 featureExtractor = fe.FeatureExtractor(seq_length, "./Dataset/reviews.txt", "./Dataset/labels.txt")
 sentimentModel = model.SentimentAnalysisModel(featureExtractor, seq_length)
 
-#sentimentModel.Train()
-#sentimentModel.Test()
+# sentimentModel.Train()
+# sentimentModel.Test()
 
 
-sentimentModel.load_model(None)
+sentimentModel.load_model(175)
 print ("Test:")
 print ("-------------")
 texts = ["this movie is excellent",

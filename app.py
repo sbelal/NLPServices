@@ -2,8 +2,7 @@
 Flask service test
 """
 
-import tensorflow as tf
-from flask import Flask, jsonify, abort, request, make_response, url_for
+from flask import Flask, jsonify, abort, request, make_response, url_for, render_template
 import FeatureExtractor as fe
 import SentimentAnalysisModel as model
 
@@ -27,6 +26,16 @@ def internal_error(error):
     return make_response(jsonify({'error': 'Internal server error. Details: '+str(error)}), 500)
 
 #endregion
+
+
+#region Web site
+
+@app.route("/")
+def main():
+    return render_template('index.html')
+
+#endregion
+
 
 #region service functions
 
@@ -154,12 +163,10 @@ tasks = [
 
 
 seq_length = 200
-
-
 featureExtractor = fe.FeatureExtractor(seq_length, "./Dataset/reviews.txt", "./Dataset/labels.txt")
 sentimentModel = model.SentimentAnalysisModel(featureExtractor, seq_length)
-sentimentModel.load_model()
+sentimentModel.load_model(175)
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
